@@ -10,7 +10,7 @@ RUN mvn clean package -DskipTests
 
 # ETAPA 2: Ejecución (Run)
 # Usamos una imagen base más ligera (slim) para la ejecución final
-FROM openjdk:17-jdk-slim
+FROM eclipse-temurin:17-jdk-alpine
 # Copia el JAR generado de la etapa de construcción
 COPY --from=build /app/target/*.jar app.jar
 # Define el punto de entrada (el comando de inicio)
