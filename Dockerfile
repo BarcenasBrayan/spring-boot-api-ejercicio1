@@ -1,17 +1,34 @@
-# ETAPA 1: Compilación (Build)
-FROM maven:3-openjdk-17 AS build  
-WORKDIR /app
-COPY pom.xml .
-# Descarga las dependencias para que sean cacheadas
-RUN mvn dependency:go-offline
-COPY . .
-# Compila la aplicación y genera el JAR
-RUN mvn clean package -DskipTests
+# ---------------------------
+# ETAPA 1: BUILD
+# ---------------------------
+FROM gradle:8.5-jdk17 AS build
 
-# ETAPA 2: Ejecución (Run)
-# Usamos una imagen base más ligera (slim) para la ejecución final
+WORKDIR /app
+
+# Copia solo lo necesario para el build
+COPY build.gradle settings.gradle ./
+COPY gradle ./gradle
+COPY gradlew ./
+
+# Da permisos de ejecución al wrapper
+RUN chmod +x gradlew
+
+# Copia el código fuente
+COPY src ./src
+
+# Construye el JAR
+RUN ./gradlew bootJar --no-daemon
+
+# ---------------------------
+# ETAPA 2: RUN (Imagen ligera)
+# ---------------------------
 FROM eclipse-temurin:17-jdk-alpine
-# Copia el JAR generado de la etapa de construcción
-COPY --from=build /app/target/*.jar app.jar
-# Define el punto de entrada (el comando de inicio)
-ENTRYPOINT ["java", "-jar", "/app.jar"]
+
+WORKDIR /app
+
+# Copia el jar compilado
+COPY --from=build /app/build/libs/*.jar app.jar
+
+EXPOSE 8080
+
+ENTRYPOINT ["java", "-jar", "app.jar"]
